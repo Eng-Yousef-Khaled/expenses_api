@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service interface {
+type UserService interface {
 	CreateUser(ctx context.Context, u repo.User) (repo.User, error)
 }
 type svc struct {
@@ -19,7 +19,7 @@ type svc struct {
 	Queue queue.TaskQueue
 }
 
-func CreateService(repo repo.Querier, Queue queue.TaskQueue) Service {
+func CreateService(repo repo.Querier, Queue queue.TaskQueue) UserService {
 	return &svc{
 		repo:  repo,
 		Queue: Queue,

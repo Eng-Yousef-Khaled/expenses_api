@@ -10,6 +10,7 @@ import (
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/gomailing"
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
+	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/server"
 	auth "github.com/eng-yousef-khaled/expenses_api/internal/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 	"github.com/gocraft/work"
@@ -51,9 +52,9 @@ func (app *application) mount() http.Handler {
 	pool.Job("send_welcome_email", jobHandler.ProccessSendMail)
 	// Users
 	user_service := auth.CreateService(repo.New(app.db), redisAdapter)
-	handler_user := auth.NewHandler(user_service)
+	httpServer := server.NewHttpServer(user_service)
 
-	r.Post("/auth/register", handler_user.RegisterUser)
+	r.Post("/auth/register", httpServer.RegisterUser)
 	return r
 }
 

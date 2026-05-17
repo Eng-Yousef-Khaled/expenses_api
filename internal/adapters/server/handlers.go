@@ -1,23 +1,24 @@
-package auth
+package server
 
 import (
 	"log"
 	"net/http"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
+	"github.com/eng-yousef-khaled/expenses_api/internal/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 )
 
-type handler struct {
-	service Service
+type httpServer struct {
+	userService auth.UserService
 }
 
-func NewHandler(ser Service) *handler {
-	return &handler{
-		service: ser,
+func NewHttpServer(ser auth.UserService) *httpServer {
+	return &httpServer{
+		userService: ser,
 	}
 }
-func (h *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *httpServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var u repo.User
 	if err := json.Read(r, &u); err != nil {
 		log.Println(err)
@@ -25,7 +26,7 @@ func (h *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, createUserError := h.service.CreateUser(r.Context(), u)
+	user, createUserError := h.userService.CreateUser(r.Context(), u)
 	if createUserError != nil {
 		log.Println(createUserError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
