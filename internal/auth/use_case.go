@@ -1,19 +1,30 @@
-package users
+package auth
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"log/slog"
+
+	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/gomailing"
+	"github.com/gocraft/work"
 )
 
-func HashingPassword(password *string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	*password = string(hash)
-	return nil
+type JobHandler struct {
+	Mail gomailing.Mailer
 }
 
-func ValidateEnterPassword(hashingPassword string, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashingPassword), []byte(password))
-	return err == nil
+func (j *JobHandler) ProccessSendMail(job *work.Job) error {
+	email := job.ArgString("email")
+	message := job.ArgString("message")
+	data := map[string]any{"Name": email, "message": message}
+	slog.Info("Processing email task after delay", "to", email)
+	err := j.Mail.SendMail(gomailing.Request{
+		To:       []string{email},
+		Subject:  "Code Verification",
+		Body:     &message,
+		MailType: gomailing.Text,
+		Data:     data,
+	})
+	if err != nil {
+		slog.Error("ProcessSendMail Failed", "error", err)
+	}
+	return err
 }

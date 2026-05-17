@@ -1,4 +1,4 @@
-package users
+package auth
 
 import (
 	"log"
@@ -24,19 +24,12 @@ func (h *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// mailReq := mail.NewRequest([]string{u.Email}, fmt.Sprintf("مرحبا بك عزيزي %s", u.Email))
-	// res := h.mailService.SendMail(*mailReq)
-	// if res {
-	// 	log.Printf("Send Mail succeeded")
-	// } else {
-	// 	log.Printf("Send mail Failed")
-	// }
-	err := HashingPassword(&u.Password)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	user, createUserError := h.service.CreateUser(r.Context(), u)
+	if createUserError != nil {
+		log.Println(createUserError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	h.service.CreateUser(r.Context(), u)
-	json.Write(w, http.StatusCreated, u)
+	json.Write(w, http.StatusCreated, user)
 }

@@ -11,7 +11,6 @@ import (
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
 	auth "github.com/eng-yousef-khaled/expenses_api/internal/auth"
-	"github.com/eng-yousef-khaled/expenses_api/internal/jobs"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 	"github.com/gocraft/work"
 
@@ -46,8 +45,8 @@ func (app *application) mount() http.Handler {
 		slog.Info("Redis connection is healthy")
 	}
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
-	jobHandler := &jobs.JobHandler{Mail: mailAdapter}
-	pool := work.NewWorkerPool(jobs.JobHandler{}, 10, APP_NAME, redisAdapter.Pool)
+	jobHandler := &auth.JobHandler{Mail: mailAdapter}
+	pool := work.NewWorkerPool(jobHandler, 10, APP_NAME, redisAdapter.Pool)
 	go pool.Start()
 	pool.Job("send_welcome_email", jobHandler.ProccessSendMail)
 	// Users
