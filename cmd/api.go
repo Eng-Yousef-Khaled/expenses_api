@@ -11,7 +11,7 @@ import (
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/server"
-	auth "github.com/eng-yousef-khaled/expenses_api/internal/auth"
+	auth "github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 	"github.com/gocraft/work"
 
@@ -33,7 +33,7 @@ func (app *application) mount() http.Handler {
 		json.Write(w, 200, "Working ...")
 	})
 	redisAdapter := queue.NewRedisAdapter(queue.RedisConfig(app.config.caching), APP_NAME)
-	conn := redisAdapter.Pool.Get()
+	conn := redisAdapter.GetPool()
 
 	defer conn.Close()
 
@@ -47,11 +47,11 @@ func (app *application) mount() http.Handler {
 	}
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
 	jobHandler := &auth.JobHandler{Mail: mailAdapter}
-	pool := work.NewWorkerPool(jobHandler, 10, APP_NAME, redisAdapter.Pool)
+	pool := work.NewWorkerPool(jobHandler, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()
-	pool.Job("send_welcome_email", jobHandler.ProccessSendMail)
+	user_service := auth.CreateService(repo.New(app.db), redisAdapter, mailAdapter)
+	pool.Job("send_welcome_email", user_service.ProccessSendMail)
 	// Users
-	user_service := auth.CreateService(repo.New(app.db), redisAdapter)
 	httpServer := server.NewHttpServer(user_service)
 
 	r.Post("/auth/register", httpServer.RegisterUser)

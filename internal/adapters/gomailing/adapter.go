@@ -5,6 +5,7 @@ import (
 	"log"
 	"text/template"
 
+	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"gopkg.in/gomail.v2"
 )
 
@@ -18,10 +19,10 @@ func NewGoMail(host, email, password string,
 	return &GoMailer{host, email, password, port}
 }
 
-func (goMail *GoMailer) SendMail(r Request) error {
+func (goMail *GoMailer) SendMail(r auth.Request) error {
 	log.Printf("Get Mail Request is: %+v", r)
 	var m *gomail.Message
-	if r.MailType == HTML {
+	if r.MailType == auth.HTML {
 		tmpl, err := template.ParseFiles(*r.TempFile)
 		if err != nil {
 			return err

@@ -9,8 +9,8 @@ import (
 )
 
 type RedisAdapter struct {
-	Pool     *redis.Pool
-	Enqueuer *work.Enqueuer
+	pool     *redis.Pool
+	enqueuer *work.Enqueuer
 }
 
 func NewRedisAdapter(cfg RedisConfig, namespace string) *RedisAdapter {
@@ -27,15 +27,23 @@ func NewRedisAdapter(cfg RedisConfig, namespace string) *RedisAdapter {
 		Wait:      cfg.Wait,
 	}
 	return &RedisAdapter{
-		Pool:     pool,
-		Enqueuer: work.NewEnqueuer(namespace, pool),
+		pool:     pool,
+		enqueuer: work.NewEnqueuer(namespace, pool),
 	}
 
 }
 
 func (r *RedisAdapter) Enqueue(taskName string, payloads map[string]any) error {
-	_, err := r.Enqueuer.Enqueue(taskName, payloads)
+	_, err := r.enqueuer.Enqueue(taskName, payloads)
 
 	log.Printf("Value come into Enqueue, name: %s \n", taskName)
 	return err
+}
+
+func (r *RedisAdapter) GetPool() redis.Conn {
+	return r.pool.Get()
+}
+
+func (r *RedisAdapter) Pool() *redis.Pool {
+	return r.pool
 }

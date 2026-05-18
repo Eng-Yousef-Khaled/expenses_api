@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
-	"github.com/eng-yousef-khaled/expenses_api/internal/auth"
+	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 )
 
