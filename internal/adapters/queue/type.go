@@ -1,7 +1,13 @@
 package queue
 
+import (
+	"context"
+
+	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+)
+
 type TaskQueue interface {
-	Enqueue(taskName string, payload map[string]any) error
+	Publish(ctx context.Context, job auth.Job) error
 }
 
 type RedisConfig struct {

@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 )
@@ -19,7 +18,7 @@ func NewHttpServer(ser auth.UserService) *httpServer {
 	}
 }
 func (h *httpServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	var u repo.User
+	var u auth.CreateUserRequest
 	if err := json.Read(r, &u); err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

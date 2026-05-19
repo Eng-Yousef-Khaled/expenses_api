@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/gomailing"
+	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/adapters/password_hashing"
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/server"
 	auth "github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 	"github.com/gocraft/work"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -46,11 +48,14 @@ func (app *application) mount() http.Handler {
 		slog.Info("Redis connection is healthy")
 	}
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
-	jobHandler := &auth.JobHandler{Mail: mailAdapter}
-	pool := work.NewWorkerPool(jobHandler, 10, APP_NAME, redisAdapter.Pool())
+
+	postgresUserRepo := auth.CreateRepo(repo.New(app.db))
+	bcryptPasswordHash := passwordhashing.CreateBcryptPasswordHash(bcrypt.DefaultCost)
+	user_service := auth.CreateService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
+	jobHandler := &auth.JobHandler{Service: user_service}
+	pool := work.NewWorkerPool(auth.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()
-	user_service := auth.CreateService(repo.New(app.db), redisAdapter, mailAdapter)
-	pool.Job("send_welcome_email", user_service.ProccessSendMail)
+	pool.Job("send_welcome_email", jobHandler.ProccessSendMail)
 	// Users
 	httpServer := server.NewHttpServer(user_service)
 
