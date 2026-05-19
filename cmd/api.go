@@ -55,7 +55,7 @@ func (app *application) mount() http.Handler {
 	jobHandler := &auth.JobHandler{Service: user_service}
 	pool := work.NewWorkerPool(auth.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()
-	pool.Job("send_welcome_email", jobHandler.ProccessSendMail)
+	pool.Job("send_verification_mail", jobHandler.ProccessSendMail)
 	// Users
 	httpServer := server.NewHttpServer(user_service)
 

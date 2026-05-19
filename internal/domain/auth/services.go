@@ -42,7 +42,7 @@ func (s *svc) CreateUser(ctx context.Context, user CreateUserRequest) (User, err
 		log.Printf("Has an error while Create User : %s \n", uError)
 	}
 	err := s.publisher.Publish(ctx, Job{
-		Name: "send_welcome_email",
+		Name: "send_verification_mail",
 		Payload: map[string]any{
 			"email":   user.Email,
 			"message": fmt.Sprintf("Welcome dear: %s, your UUID is: %s", user.Name, user.Uuid),
