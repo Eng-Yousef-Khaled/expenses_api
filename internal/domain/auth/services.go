@@ -31,12 +31,12 @@ func CreateService(users UserRepository,
 
 func (s *svc) CreateUser(ctx context.Context, user CreateUser) (User, *CreateUserError) {
 
-	hasherErr := s.hasher.HashingPassword(&user.Password)
+	password, hasherErr := s.hasher.HashingPassword(user.Password)
 	if hasherErr != nil {
 		slog.Log(ctx, slog.LevelError, "hashing error proccess is failed", "error", hasherErr)
 		return User{}, &CreateUserError{PasswordHashing: string(user.Password)}
 	}
-
+	user.Password = password
 	u, uError := s.users.CreateUser(ctx, user)
 	if uError != nil {
 		slog.Log(ctx, slog.LevelError, "Has an error while Create User ", "error", uError)

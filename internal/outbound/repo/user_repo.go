@@ -1,4 +1,4 @@
-package auth
+package userrepo
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
+	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/gocraft/work"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -45,8 +46,8 @@ func convertGoogleUUIDToPgType(raw uuid.UUID) pgtype.UUID {
 	}
 }
 
-func toDomainUser(raw repo.User) User {
-	return User{
+func toDomainUser(raw repo.User) auth.User {
+	return auth.User{
 		ID:       raw.ID,
 		Uuid:     convertPgTypeUUIDToGoogle(raw.Uuid),
 		Name:     raw.Name,
@@ -54,7 +55,7 @@ func toDomainUser(raw repo.User) User {
 		Password: raw.Password,
 	}
 }
-func toSqlcParams(raw CreateUser) repo.CreateUserParams {
+func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
 	return repo.CreateUserParams{
 		Uuid:     convertGoogleUUIDToPgType(raw.Uuid),
 		Name:     string(raw.Name),
@@ -64,7 +65,7 @@ func toSqlcParams(raw CreateUser) repo.CreateUserParams {
 }
 
 type PostgresUserRepository interface {
-	CreateUser(ctx context.Context, user CreateUser) (User, *CreateUserError)
+	CreateUser(ctx context.Context, user auth.CreateUser) (auth.User, *auth.CreateUserError)
 }
 
 func CreateRepo(q *repo.Queries) PostgresUserRepository {
@@ -77,7 +78,7 @@ type postgresUserRepository struct {
 	q *repo.Queries
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, user CreateUser) (User, *CreateUserError) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, user auth.CreateUser) (auth.User, *auth.CreateUserError) {
 	user1 := toSqlcParams(user)
 	createdUser, err := p.q.CreateUser(ctx, user1)
 	if err != nil {
@@ -85,26 +86,18 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, user CreateUser
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return User{}, &CreateUserError{Duplicate: "a user with this UUID already exists"}
+				return auth.User{}, &auth.CreateUserError{Duplicate: "a user with this UUID already exists"}
 			}
 		}
-		return User{}, &CreateUserError{
+		return auth.User{}, &auth.CreateUserError{
 			Unknown: "failed to register user",
 		}
 	}
 	return toDomainUser(createdUser), nil
 }
 
-type JobPublisher interface {
-	Publish(ctx context.Context, job Job) error
-}
-
-type Job struct {
-	Name    string
-	Payload map[string]any
-}
 type JobHandler struct {
-	Service UserService
+	Service auth.UserService
 }
 
 func (j JobHandler) ProccessSendMail(job *work.Job) error {
@@ -120,7 +113,7 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	// 	Data:     data,
 	// 	MailType: Text,
 	// })
-	err := j.Service.SendVerificationMail(context.Background(), VerificationCodeMail{
+	err := j.Service.SendVerificationMail(context.Background(), auth.VerificationCodeMail{
 		Message: message,
 		Email:   email,
 	})

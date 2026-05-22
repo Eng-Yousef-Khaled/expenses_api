@@ -7,12 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/gomailing"
-	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/adapters/password_hashing"
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
-	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
 	auth "github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+	httpserver "github.com/eng-yousef-khaled/expenses_api/internal/inbound/http_server"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
+	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/gomailing"
+	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/outbound/password_hashing"
+	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/queue"
+	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/repo"
 	"github.com/gocraft/work"
 	"golang.org/x/crypto/bcrypt"
 
@@ -48,14 +50,14 @@ func (app *application) mount() http.Handler {
 	}
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
 
-	postgresUserRepo := auth.CreateRepo(repo.New(app.db))
+	postgresUserRepo := userrepo.CreateRepo(repo.New(app.db))
 	bcryptPasswordHash := passwordhashing.CreateBcryptPasswordHash(bcrypt.DefaultCost)
 	user_service := auth.CreateService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
-	jobHandler := &auth.JobHandler{Service: user_service}
-	pool := work.NewWorkerPool(auth.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
+	jobHandler := &userrepo.JobHandler{Service: user_service}
+	pool := work.NewWorkerPool(userrepo.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()
 	pool.Job("send_verification_mail", jobHandler.ProccessSendMail)
-	auth_handler := auth.CreateHandler(user_service)
+	auth_handler := httpserver.CreateHandler(user_service)
 	// Users
 	// httpServer := server.NewHttpServer(user_service)
 

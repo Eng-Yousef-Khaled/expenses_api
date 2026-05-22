@@ -6,7 +6,7 @@ import (
 )
 
 type BcryptPasswordHash interface {
-	HashingPassword(Password *auth.Password) error
+	HashingPassword(Password auth.Password) (auth.Password, error)
 	ValidateEnterPassword(hashingPassword string, password string) bool
 }
 
@@ -20,13 +20,12 @@ func CreateBcryptPasswordHash(cost int) BcryptPasswordHash {
 	}
 }
 
-func (s *bcryptPasswordHash) HashingPassword(password *auth.Password) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
+func (s *bcryptPasswordHash) HashingPassword(Password auth.Password) (auth.Password, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(Password), s.cost)
 	if err != nil {
-		return err
+		return "", err
 	}
-	*password = auth.Password(hash)
-	return nil
+	return auth.Password(hash), nil
 }
 
 func (s *bcryptPasswordHash) ValidateEnterPassword(hashingPassword string, password string) bool {
