@@ -11,7 +11,6 @@ import (
 	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/adapters/password_hashing"
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/queue"
-	"github.com/eng-yousef-khaled/expenses_api/internal/adapters/server"
 	auth "github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/json"
 	"github.com/gocraft/work"
@@ -56,10 +55,11 @@ func (app *application) mount() http.Handler {
 	pool := work.NewWorkerPool(auth.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()
 	pool.Job("send_verification_mail", jobHandler.ProccessSendMail)
+	auth_handler := auth.CreateHandler(user_service)
 	// Users
-	httpServer := server.NewHttpServer(user_service)
+	// httpServer := server.NewHttpServer(user_service)
 
-	r.Post("/auth/register", httpServer.RegisterUser)
+	r.Post("/auth/register", auth_handler.RegisterUser)
 	return r
 }
 

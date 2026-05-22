@@ -2,32 +2,69 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/gocraft/work"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type CreateUserRequest struct {
+	ID       int64       `json:"id"`
+	Uuid     pgtype.UUID `json:"uuid"`
+	Name     string      `json:"name"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
+}
+type DBUser struct {
+	ID       int64       `json:"id"`
+	Uuid     pgtype.UUID `json:"uuid"`
+	Name     string      `json:"name"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
+}
+
+func convertPgTypeUUIDToGoogle(raw pgtype.UUID) uuid.UUID {
+	if !raw.Valid {
+		return uuid.Nil
+	}
+
+	return uuid.UUID(raw.Bytes)
+}
+func convertGoogleUUIDToPgType(raw uuid.UUID) pgtype.UUID {
+	if raw == uuid.Nil {
+		return pgtype.UUID{Valid: false}
+	}
+
+	return pgtype.UUID{
+		Bytes: raw,
+		Valid: true,
+	}
+}
 
 func toDomainUser(raw repo.User) User {
 	return User{
 		ID:       raw.ID,
-		Uuid:     raw.Uuid,
+		Uuid:     convertPgTypeUUIDToGoogle(raw.Uuid),
 		Name:     raw.Name,
 		Email:    raw.Email,
 		Password: raw.Password,
 	}
 }
-func toSqlcParams(raw CreateUserRequest) repo.CreateUserParams {
+func toSqlcParams(raw CreateUser) repo.CreateUserParams {
 	return repo.CreateUserParams{
-		Uuid:     raw.Uuid,
-		Name:     raw.Name,
-		Email:    raw.Email,
-		Password: raw.Password,
+		Uuid:     convertGoogleUUIDToPgType(raw.Uuid),
+		Name:     string(raw.Name),
+		Email:    string(raw.Email),
+		Password: string(raw.Password),
 	}
 }
 
 type PostgresUserRepository interface {
-	CreateUser(ctx context.Context, user CreateUserRequest) (User, error)
+	CreateUser(ctx context.Context, user CreateUser) (User, *CreateUserError)
 }
 
 func CreateRepo(q *repo.Queries) PostgresUserRepository {
@@ -40,13 +77,22 @@ type postgresUserRepository struct {
 	q *repo.Queries
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, user CreateUserRequest) (User, error) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, user CreateUser) (User, *CreateUserError) {
 	user1 := toSqlcParams(user)
 	createdUser, err := p.q.CreateUser(ctx, user1)
 	if err != nil {
 		slog.Log(ctx, slog.LevelError, "Error while creating user in adapter", "error", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return User{}, &CreateUserError{Duplicate: "a user with this UUID already exists"}
+			}
+		}
+		return User{}, &CreateUserError{
+			Unknown: "failed to register user",
+		}
 	}
-	return toDomainUser(createdUser), err
+	return toDomainUser(createdUser), nil
 }
 
 type JobPublisher interface {

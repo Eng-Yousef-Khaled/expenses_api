@@ -1,9 +1,12 @@
 package passwordhashing
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+	"golang.org/x/crypto/bcrypt"
+)
 
 type BcryptPasswordHash interface {
-	HashingPassword(password *string) error
+	HashingPassword(Password *auth.Password) error
 	ValidateEnterPassword(hashingPassword string, password string) bool
 }
 
@@ -17,12 +20,12 @@ func CreateBcryptPasswordHash(cost int) BcryptPasswordHash {
 	}
 }
 
-func (s *bcryptPasswordHash) HashingPassword(password *string) error {
+func (s *bcryptPasswordHash) HashingPassword(password *auth.Password) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	*password = string(hash)
+	*password = auth.Password(hash)
 	return nil
 }
 
