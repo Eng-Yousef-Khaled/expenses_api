@@ -2,15 +2,13 @@ package main
 
 import (
 	"log"
-	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
-	auth "github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+	"github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
 	httpserver "github.com/eng-yousef-khaled/expenses_api/internal/inbound/http_server"
-	"github.com/eng-yousef-khaled/expenses_api/internal/json"
+	"github.com/eng-yousef-khaled/expenses_api/internal/inbound/json"
 	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/gomailing"
 	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/outbound/password_hashing"
 	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/queue"
@@ -36,23 +34,12 @@ func (app *application) mount() http.Handler {
 		json.Write(w, 200, "Working ...")
 	})
 	redisAdapter := queue.NewRedisAdapter(queue.RedisConfig(app.config.caching), APP_NAME)
-	conn := redisAdapter.GetPool()
 
-	defer conn.Close()
-
-	_, err := conn.Do("PING")
-
-	if err != nil {
-		slog.Error("Redis is NOT connected", "error", err)
-		os.Exit(0)
-	} else {
-		slog.Info("Redis connection is healthy")
-	}
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
 
-	postgresUserRepo := userrepo.CreateRepo(repo.New(app.db))
+	postgresUserRepo := userrepo.NewRepo(repo.New(app.db))
 	bcryptPasswordHash := passwordhashing.CreateBcryptPasswordHash(bcrypt.DefaultCost)
-	user_service := auth.CreateService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
+	user_service := auth.NewService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
 	jobHandler := &userrepo.JobHandler{Service: user_service}
 	pool := work.NewWorkerPool(userrepo.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
 	go pool.Start()

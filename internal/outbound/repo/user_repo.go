@@ -6,7 +6,8 @@ import (
 	"log/slog"
 
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
-	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+	"github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
+	authCore "github.com/eng-yousef-khaled/expenses_api/internal/core/auth"
 	"github.com/gocraft/work"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -46,16 +47,16 @@ func convertGoogleUUIDToPgType(raw uuid.UUID) pgtype.UUID {
 	}
 }
 
-func toDomainUser(raw repo.User) auth.User {
-	return auth.User{
+func toDomainUser(raw repo.User) authCore.User {
+	return authCore.User{
 		ID:       raw.ID,
 		Uuid:     convertPgTypeUUIDToGoogle(raw.Uuid),
-		Name:     raw.Name,
-		Email:    raw.Email,
-		Password: raw.Password,
+		Name:     authCore.Name(raw.Name),
+		Email:    authCore.EmailAddress(raw.Email),
+		Password: authCore.HashedPassword(raw.Password),
 	}
 }
-func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
+func toSqlcParams(raw authCore.User) repo.CreateUserParams {
 	return repo.CreateUserParams{
 		Uuid:     convertGoogleUUIDToPgType(raw.Uuid),
 		Name:     string(raw.Name),
@@ -65,10 +66,10 @@ func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
 }
 
 type PostgresUserRepository interface {
-	CreateUser(ctx context.Context, user auth.CreateUser) (auth.User, *auth.CreateUserError)
+	CreateUser(ctx context.Context, user authCore.User) (authCore.User, *authCore.CreateUserError)
 }
 
-func CreateRepo(q *repo.Queries) PostgresUserRepository {
+func NewRepo(q *repo.Queries) PostgresUserRepository {
 	return &postgresUserRepository{
 		q: q,
 	}
@@ -78,7 +79,7 @@ type postgresUserRepository struct {
 	q *repo.Queries
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, user auth.CreateUser) (auth.User, *auth.CreateUserError) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, user authCore.User) (authCore.User, *authCore.CreateUserError) {
 	user1 := toSqlcParams(user)
 	createdUser, err := p.q.CreateUser(ctx, user1)
 	if err != nil {
@@ -86,10 +87,10 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, user auth.Creat
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return auth.User{}, &auth.CreateUserError{Duplicate: "a user with this UUID already exists"}
+				return authCore.User{}, &authCore.CreateUserError{Duplicate: "a user with this UUID already exists"}
 			}
 		}
-		return auth.User{}, &auth.CreateUserError{
+		return authCore.User{}, &authCore.CreateUserError{
 			Unknown: "failed to register user",
 		}
 	}
@@ -113,7 +114,7 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	// 	Data:     data,
 	// 	MailType: Text,
 	// })
-	err := j.Service.SendVerificationMail(context.Background(), auth.VerificationCodeMail{
+	err := j.Service.SendVerification(context.Background(), auth.VerificationCodeMail{
 		Message: message,
 		Email:   email,
 	})

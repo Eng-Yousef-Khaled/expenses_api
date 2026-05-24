@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
-	"github.com/eng-yousef-khaled/expenses_api/internal/json"
+	authApp "github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
+	authCore "github.com/eng-yousef-khaled/expenses_api/internal/core/auth"
+	"github.com/eng-yousef-khaled/expenses_api/internal/inbound/json"
 	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/repo"
 )
 
@@ -17,10 +18,10 @@ type UserHandler interface {
 	RegisterUser(w http.ResponseWriter, r *http.Request)
 }
 type handler struct {
-	service auth.UserService
+	service authApp.UserService
 }
 
-func CreateHandler(ser auth.UserService) UserHandler {
+func CreateHandler(ser authApp.UserService) UserHandler {
 	return &handler{
 		service: ser,
 	}
@@ -32,25 +33,25 @@ func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	email, mailErr := auth.NewEmailAddress(raw.Email)
+	email, mailErr := authCore.NewEmailAddress(raw.Email)
 	if mailErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "email is not valid", "error", mailErr)
 		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: mailErr.Error()})
 		return
 	}
-	pass, passErr := auth.NewPassword(raw.Password)
+	pass, passErr := authCore.NewRawPassword(raw.Password)
 	if passErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "password is not valid", "error", passErr)
 		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: passErr.Error()})
 		return
 	}
-	name, nameErr := auth.NewName(raw.Name)
+	name, nameErr := authCore.NewName(raw.Name)
 	if nameErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "name is not valid", "error", nameErr)
 		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: nameErr.Error()})
 		return
 	}
-	user := auth.CreateUser{
+	user := authApp.CreateUser{
 		Uuid:     raw.Uuid.Bytes,
 		Name:     name,
 		Email:    email,

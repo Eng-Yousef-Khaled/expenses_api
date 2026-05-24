@@ -18,7 +18,7 @@ type svc struct {
 	mailer    Mailer
 }
 
-func CreateService(users UserRepository,
+func NewService(users UserRepository,
 	publisher JobPublisher,
 	hasher PasswordHash, mailer Mailer) UserService {
 	return &svc{
