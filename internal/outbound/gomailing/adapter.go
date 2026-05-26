@@ -42,7 +42,7 @@ func (g *goMailer) SendVerification(ctx context.Context, mail auth.EmailAddress,
 	m = gomail.NewMessage()
 	m.SetHeader("From", g.email)
 	m.SetHeader("To", string(mail))
-	m.SetHeader("Subject", "")
+	m.SetHeader("Subject", "Verification Mail")
 	m.SetBody("text/html", message)
 	// }
 	d := gomail.NewDialer(g.host, g.port, g.email, g.password)

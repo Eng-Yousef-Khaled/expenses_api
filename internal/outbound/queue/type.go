@@ -3,7 +3,7 @@ package queue
 import (
 	"context"
 
-	"github.com/eng-yousef-khaled/expenses_api/internal/domain/auth"
+	"github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
 )
 
 type TaskQueue interface {

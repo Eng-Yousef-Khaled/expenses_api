@@ -2,7 +2,6 @@ package queue
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"os"
 
@@ -19,19 +18,8 @@ type redisAdapter struct {
 	enqueuer *work.Enqueuer
 }
 
-func NewRedisAdapter(cfg RedisConfig, namespace string) RedisAdapter {
-	pool := &redis.Pool{
-		Dial: func() (redis.Conn, error) {
-			dial, ok := cfg.Dial.(func() (redis.Conn, error))
-			if !ok {
-				return nil, errors.New("Failed to use config dial")
-			}
-			return dial()
-		},
-		MaxIdle:   int(cfg.MaxIdle),
-		MaxActive: int(cfg.MaxActive),
-		Wait:      cfg.Wait,
-	}
+func NewRedisAdapter(pool *redis.Pool, namespace string) RedisAdapter {
+
 	conn := pool.Get()
 
 	defer conn.Close()

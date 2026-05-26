@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -11,9 +12,10 @@ import (
 	"github.com/eng-yousef-khaled/expenses_api/internal/inbound/json"
 	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/gomailing"
 	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/outbound/password_hashing"
+	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/postgres"
 	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/queue"
-	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/repo"
 	"github.com/gocraft/work"
+	"github.com/gomodule/redigo/redis"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-chi/chi/v5"
@@ -33,7 +35,20 @@ func (app *application) mount() http.Handler {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		json.Write(w, 200, "Working ...")
 	})
-	redisAdapter := queue.NewRedisAdapter(queue.RedisConfig(app.config.caching), APP_NAME)
+	redisConfig := queue.RedisConfig(app.config.caching)
+	pool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			dial, ok := redisConfig.Dial.(func() (redis.Conn, error))
+			if !ok {
+				return nil, errors.New("Failed to use config dial")
+			}
+			return dial()
+		},
+		MaxIdle:   int(redisConfig.MaxIdle),
+		MaxActive: int(redisConfig.MaxActive),
+		Wait:      redisConfig.Wait,
+	}
+	redisAdapter := queue.NewRedisAdapter(pool, APP_NAME)
 
 	mailAdapter := gomailing.NewGoMail(app.config.mail.server, app.config.mail.email, app.config.mail.password, int(app.config.mail.port))
 
@@ -41,9 +56,9 @@ func (app *application) mount() http.Handler {
 	bcryptPasswordHash := passwordhashing.CreateBcryptPasswordHash(bcrypt.DefaultCost)
 	user_service := auth.NewService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
 	jobHandler := &userrepo.JobHandler{Service: user_service}
-	pool := work.NewWorkerPool(userrepo.JobHandler{}, 10, APP_NAME, redisAdapter.Pool())
-	go pool.Start()
-	pool.Job("send_verification_mail", jobHandler.ProccessSendMail)
+	workerPool := work.NewWorkerPool(userrepo.JobHandler{}, 10, APP_NAME, pool)
+	go workerPool.Start()
+	workerPool.Job("send_verification_mail", jobHandler.ProccessSendMail)
 	auth_handler := httpserver.CreateHandler(user_service)
 	// Users
 	// httpServer := server.NewHttpServer(user_service)

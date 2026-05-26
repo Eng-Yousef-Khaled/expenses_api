@@ -8,7 +8,7 @@ import (
 	authApp "github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
 	authCore "github.com/eng-yousef-khaled/expenses_api/internal/core/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/inbound/json"
-	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/repo"
+	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/postgres"
 )
 
 type ErrorResponse struct {

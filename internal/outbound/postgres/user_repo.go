@@ -114,10 +114,7 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	// 	Data:     data,
 	// 	MailType: Text,
 	// })
-	err := j.Service.SendVerification(context.Background(), auth.VerificationCodeMail{
-		Message: message,
-		Email:   email,
-	})
+	err := j.Service.SendVerification(context.Background(), authCore.EmailAddress(email), message)
 	if err != nil {
 		slog.Error("ProcessSendMail Failed", "error", err)
 	}
