@@ -60,10 +60,9 @@ func (app *application) mount() http.Handler {
 	go workerPool.Start()
 	workerPool.Job("send_verification_mail", jobHandler.ProccessSendMail)
 	auth_handler := httpserver.CreateHandler(user_service)
-	// Users
-	// httpServer := server.NewHttpServer(user_service)
 
 	r.Post("/auth/register", auth_handler.RegisterUser)
+	r.Post("/auth/login", auth_handler.LoginUser)
 	return r
 }
 

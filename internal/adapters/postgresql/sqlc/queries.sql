@@ -16,3 +16,11 @@ WHERE
 INSERT INTO users (uuid, name, email, password)
 VALUES ($1, $2, $3, $4)
 RETURNING id, uuid, name, email, password;
+
+-- name: LoginUser :one
+SELECT
+    *
+FROM
+    users
+WHERE
+    email = $1;

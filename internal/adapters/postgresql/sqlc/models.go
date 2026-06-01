@@ -10,14 +10,12 @@ import (
 
 type Category struct {
 	ID      int64       `json:"id"`
-	Uuid    pgtype.UUID `json:"uuid"`
 	Name    string      `json:"name"`
 	UsersID pgtype.Int8 `json:"users_id"`
 }
 
 type Expense struct {
 	ID         int64              `json:"id"`
-	Uuid       pgtype.UUID        `json:"uuid"`
 	Title      string             `json:"title"`
 	Amount     int32              `json:"amount"`
 	Date       pgtype.Timestamptz `json:"date"`
@@ -53,4 +51,12 @@ type UsersLog struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	LogAt     pgtype.Timestamptz `json:"log_at"`
+}
+
+type VerificationCode struct {
+	ID        int64              `json:"id"`
+	Code      string             `json:"code"`
+	UsersID   pgtype.Int8        `json:"users_id"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }

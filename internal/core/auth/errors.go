@@ -1,12 +1,20 @@
 package auth
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type CreateUserError struct {
 	Duplicate       string
 	PasswordHashing string
 	Unknown         string
 }
+
+var (
+	InvalidEmailOrPasswordError = errors.New("can't Login, Invalid email or password")
+	LoginPasswordHashingError   = errors.New("Failed To hashing password")
+)
 
 type NameError string
 

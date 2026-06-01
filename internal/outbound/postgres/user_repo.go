@@ -14,21 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type CreateUserRequest struct {
-	ID       int64       `json:"id"`
-	Uuid     pgtype.UUID `json:"uuid"`
-	Name     string      `json:"name"`
-	Email    string      `json:"email"`
-	Password string      `json:"password"`
-}
-type DBUser struct {
-	ID       int64       `json:"id"`
-	Uuid     pgtype.UUID `json:"uuid"`
-	Name     string      `json:"name"`
-	Email    string      `json:"email"`
-	Password string      `json:"password"`
-}
-
 func convertPgTypeUUIDToGoogle(raw pgtype.UUID) uuid.UUID {
 	if !raw.Valid {
 		return uuid.Nil
@@ -67,6 +52,7 @@ func toSqlcParams(raw authCore.User) repo.CreateUserParams {
 
 type PostgresUserRepository interface {
 	CreateUser(ctx context.Context, user authCore.User) (authCore.User, *authCore.CreateUserError)
+	LoginUser(ctx context.Context, email authCore.EmailAddress) (authCore.User, error)
 }
 
 func NewRepo(q *repo.Queries) PostgresUserRepository {
@@ -93,6 +79,15 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, user authCore.U
 		return authCore.User{}, &authCore.CreateUserError{
 			Unknown: "failed to register user",
 		}
+	}
+	return toDomainUser(createdUser), nil
+}
+
+func (p *postgresUserRepository) LoginUser(ctx context.Context, email authCore.EmailAddress) (authCore.User, error) {
+	createdUser, err := p.q.LoginUser(ctx, string(email))
+	if err != nil {
+		slog.Log(ctx, slog.LevelError, "Can't login has an", "error", err)
+		return authCore.User{}, authCore.InvalidEmailOrPasswordError
 	}
 	return toDomainUser(createdUser), nil
 }

@@ -11,3 +11,7 @@ type CreateUser struct {
 	Email    auth.EmailAddress
 	Password auth.RawPassword
 }
+type LoginUser struct {
+	Email    auth.EmailAddress
+	Password auth.RawPassword
+}

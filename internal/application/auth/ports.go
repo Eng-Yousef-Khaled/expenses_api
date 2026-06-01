@@ -8,6 +8,7 @@ import (
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user auth.User) (auth.User, *auth.CreateUserError)
+	LoginUser(ctx context.Context, email auth.EmailAddress) (auth.User, error)
 }
 
 type VerificationNotifier interface {

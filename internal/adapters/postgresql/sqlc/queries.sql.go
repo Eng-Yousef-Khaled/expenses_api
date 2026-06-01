@@ -102,3 +102,25 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	}
 	return items, nil
 }
+
+const loginUser = `-- name: LoginUser :one
+SELECT
+    id, uuid, name, email, password
+FROM
+    users
+WHERE
+    email = $1
+`
+
+func (q *Queries) LoginUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, loginUser, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}

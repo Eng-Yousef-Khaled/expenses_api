@@ -1,14 +1,13 @@
 package httpserver
 
 import (
-	"log"
 	"log/slog"
 	"net/http"
 
 	authApp "github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
 	authCore "github.com/eng-yousef-khaled/expenses_api/internal/core/auth"
 	"github.com/eng-yousef-khaled/expenses_api/internal/inbound/json"
-	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/postgres"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type ErrorResponse struct {
@@ -16,9 +15,22 @@ type ErrorResponse struct {
 }
 type UserHandler interface {
 	RegisterUser(w http.ResponseWriter, r *http.Request)
+	LoginUser(w http.ResponseWriter, r *http.Request)
 }
 type handler struct {
 	service authApp.UserService
+}
+type CreateUserRequest struct {
+	ID       int64       `json:"id"`
+	Uuid     pgtype.UUID `json:"uuid"`
+	Name     string      `json:"name"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
+}
+
+type LoginUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func CreateHandler(ser authApp.UserService) UserHandler {
@@ -27,9 +39,9 @@ func CreateHandler(ser authApp.UserService) UserHandler {
 	}
 }
 func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	var raw userrepo.CreateUserRequest
+	var raw CreateUserRequest
 	if err := json.Read(r, &raw); err != nil {
-		log.Println(err)
+		slog.Log(r.Context(), slog.LevelError, "convert request ", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -69,4 +81,24 @@ func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.Write(w, http.StatusCreated, createdUser)
+}
+
+func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var raw LoginUserRequest
+	if err := json.Read(r, &raw); err != nil {
+		slog.Log(r.Context(), slog.LevelError, "convert request data", "error", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	loginUser := authApp.LoginUser{
+		Email:    authCore.EmailAddress(raw.Email),
+		Password: authCore.RawPassword(raw.Password),
+	}
+	u, err := h.service.LoginUser(r.Context(), loginUser)
+	if err != nil {
+		slog.Log(r.Context(), slog.LevelError, "Failed to login", "error", err)
+		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+	json.Write(w, http.StatusOK, u)
 }
