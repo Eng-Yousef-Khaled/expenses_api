@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -12,14 +14,10 @@ type User struct {
 	Password HashedPassword
 }
 
-// type EmailMessage struct {
-// 	To      []string
-// 	Subject string
-// 	Body    *string
-// 	Data    interface{}
-// }
-
-// type VerificationCodeMail struct {
-// 	Email   string
-// 	Message string
-// }
+type UserVerificationCode struct {
+	ID               int64
+	UserID           int64
+	VerificationCode VerificationCode
+	ExpiresAt        VerificationCodeExpire
+	CreatedAt        time.Time
+}

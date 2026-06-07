@@ -11,7 +11,7 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, u CreateUser) (auth.User, *auth.CreateUserError)
 	LoginUser(ctx context.Context, u LoginUser) (auth.User, error)
-	SendVerification(ctx context.Context, mail auth.EmailAddress, message string) error
+	SendVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, message string) error
 }
 type svc struct {
 	users     UserRepository
@@ -54,6 +54,7 @@ func (s *svc) CreateUser(ctx context.Context, input CreateUser) (auth.User, *aut
 		Payload: map[string]any{
 			"email":   input.Email,
 			"message": fmt.Sprintf("Welcome dear: %s, your UUID is: %s", input.Name, input.Uuid),
+			"user_id": u.ID,
 		},
 	})
 	if err != nil {
@@ -61,8 +62,9 @@ func (s *svc) CreateUser(ctx context.Context, input CreateUser) (auth.User, *aut
 	}
 	return u, nil
 }
-func (s *svc) SendVerification(ctx context.Context, mail auth.EmailAddress, message string) error {
+func (s *svc) SendVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, message string) error {
 	slog.Info("Processing email task", "to", mail)
+
 	return s.mailer.SendVerification(ctx, mail, message)
 }
 

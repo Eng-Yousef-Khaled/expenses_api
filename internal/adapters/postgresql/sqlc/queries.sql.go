@@ -42,6 +42,31 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const createVerificationCode = `-- name: CreateVerificationCode :one
+INSERT INTO user_verification_code (code, users_id, expires_at)
+VALUES ($1, $2, $3)
+RETURNING id, code, users_id, expires_at, created_at
+`
+
+type CreateVerificationCodeParams struct {
+	Code      string             `json:"code"`
+	UsersID   pgtype.Int8        `json:"users_id"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) CreateVerificationCode(ctx context.Context, arg CreateVerificationCodeParams) (UserVerificationCode, error) {
+	row := q.db.QueryRow(ctx, createVerificationCode, arg.Code, arg.UsersID, arg.ExpiresAt)
+	var i UserVerificationCode
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.UsersID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT
     id, uuid, name, email, password

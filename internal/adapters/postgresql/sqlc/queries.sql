@@ -24,3 +24,8 @@ FROM
     users
 WHERE
     email = $1;
+
+-- name: CreateVerificationCode :one
+INSERT INTO user_verification_code (code, users_id, expires_at)
+VALUES ($1, $2, $3)
+RETURNING id, code, users_id, expires_at, created_at;

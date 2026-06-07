@@ -1,6 +1,9 @@
 package auth
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type Name string
 
@@ -49,4 +52,23 @@ func NewHashedPassword(raw RawPassword) (HashedPassword, error) {
 		return "", PasswordError("password cannot be empty")
 	}
 	return HashedPassword(trimmed), nil
+}
+
+type VerificationCode string
+
+func NewVerificationCode(raw string) (VerificationCode, error) {
+	trimmed := strings.TrimSpace(raw)
+	if len(trimmed) != 6 {
+		return "", VerificationCodeError
+	}
+	return VerificationCode(raw), nil
+}
+
+type VerificationCodeExpire time.Time
+
+func NewVerificationCodeExpired(raw time.Time) (VerificationCodeExpire, error) {
+	if raw.Before(time.Now()) {
+		return VerificationCodeExpire(time.Now()), VerificationCodeExpireError
+	}
+	return VerificationCodeExpire(raw), nil
 }

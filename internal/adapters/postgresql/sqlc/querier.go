@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateVerificationCode(ctx context.Context, arg CreateVerificationCodeParams) (UserVerificationCode, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	LoginUser(ctx context.Context, email string) (User, error)

@@ -31,6 +31,14 @@ type User struct {
 	Password string      `json:"password"`
 }
 
+type UserVerificationCode struct {
+	ID        int64              `json:"id"`
+	Code      string             `json:"code"`
+	UsersID   pgtype.Int8        `json:"users_id"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type UsersAction struct {
 	ID       int64              `json:"id"`
 	UsersID  pgtype.Int8        `json:"users_id"`
@@ -51,12 +59,4 @@ type UsersLog struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	LogAt     pgtype.Timestamptz `json:"log_at"`
-}
-
-type VerificationCode struct {
-	ID        int64              `json:"id"`
-	Code      string             `json:"code"`
-	UsersID   pgtype.Int8        `json:"users_id"`
-	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
