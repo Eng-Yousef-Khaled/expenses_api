@@ -42,7 +42,7 @@ func toDomainUser(raw repo.User) authCore.User {
 		Password: authCore.HashedPassword(raw.Password),
 	}
 }
-func toSqlcParams(raw authCore.User) repo.CreateUserParams {
+func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
 	return repo.CreateUserParams{
 		Uuid:     convertGoogleUUIDToPgType(raw.Uuid),
 		Name:     string(raw.Name),
@@ -59,10 +59,20 @@ func VerificationCodeToSqlcParams(raw authCore.UserVerificationCode) repo.Create
 	}
 }
 
+func toDomainUserVerificationCode(raw repo.UserVerificationCode) authCore.UserVerificationCode {
+	return authCore.UserVerificationCode{
+		ID:               raw.ID,
+		UserID:           raw.UsersID.Int64,
+		VerificationCode: authCore.VerificationCode(raw.Code),
+		ExpiresAt:        authCore.VerificationCodeExpire(raw.ExpiresAt.Time),
+		CreatedAt:        raw.CreatedAt.Time,
+	}
+}
+
 type PostgresUserRepository interface {
-	CreateUser(ctx context.Context, user authCore.User) (authCore.User, *authCore.CreateUserError)
+	CreateUser(ctx context.Context, user auth.CreateUser) (authCore.User, error)
 	LoginUser(ctx context.Context, email authCore.EmailAddress) (authCore.User, error)
-	SendVerification(ctx context.Context, user_id int64, code int32) (authCore.UserVerificationCode, error)
+	SaveVerification(ctx context.Context, mail authCore.EmailAddress, user_id int64, code string) (authCore.UserVerificationCode, error)
 }
 
 func NewRepo(q *repo.Queries) PostgresUserRepository {
@@ -75,7 +85,7 @@ type postgresUserRepository struct {
 	q *repo.Queries
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, user authCore.User) (authCore.User, *authCore.CreateUserError) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, user auth.CreateUser) (authCore.User, error) {
 	user1 := toSqlcParams(user)
 	createdUser, err := p.q.CreateUser(ctx, user1)
 	if err != nil {
@@ -83,12 +93,10 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, user authCore.U
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return authCore.User{}, &authCore.CreateUserError{Duplicate: "a user with this UUID already exists"}
+				return authCore.User{}, authCore.Duplicate
 			}
 		}
-		return authCore.User{}, &authCore.CreateUserError{
-			Unknown: "failed to register user",
-		}
+		return authCore.User{}, authCore.ServerError
 	}
 	return toDomainUser(createdUser), nil
 }
@@ -102,21 +110,32 @@ func (p *postgresUserRepository) LoginUser(ctx context.Context, email authCore.E
 	return toDomainUser(createdUser), nil
 }
 
-func (p *postgresUserRepository) SendVerification(ctx context.Context, user_id int64, code int32) (authCore.UserVerificationCode, error) {
-	// parm := VerificationCodeToSqlcParams(authCore.UserVerificationCode{UserID: user_id,VerificationCode: })
-	// user_ver := p.q.CreateVerificationCode(ctx, )
-	return authCore.UserVerificationCode{}, nil
+func (p *postgresUserRepository) SaveVerification(ctx context.Context, mail authCore.EmailAddress, user_id int64, code string) (authCore.UserVerificationCode, error) {
+	parm := VerificationCodeToSqlcParams(authCore.UserVerificationCode{UserID: user_id, VerificationCode: authCore.VerificationCode(code)})
+	user_ver, err := p.q.CreateVerificationCode(ctx, parm)
+	if err != nil {
+		slog.Log(ctx, slog.LevelError, "User Verification Code error", "error", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			slog.Log(ctx, slog.LevelError, "User Verification Code error", "error", pgErr.Code)
+			// if pgErr.Code == "23505" {
+			// 	return authCore.User{}, &authCore.CreateUserError{Duplicate: "a user with this UUID already exists"}
+			// }
+		}
+		return authCore.UserVerificationCode{}, authCore.VerificationCodeError
+	}
+
+	return toDomainUserVerificationCode(user_ver), nil
 
 }
 
 type JobHandler struct {
-	Service auth.UserService
+	VerificationNotifier auth.VerificationNotifier
 }
 
 func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	email := job.ArgString("email")
 	message := job.ArgString("message")
-	user_id := job.ArgInt64("user_id")
 	// data := map[string]any{"Name": email, "message": message}
 	// slog.Info("Processing email task after delay", "to", email)
 	// err := j.Mail.Send(Request{
@@ -126,7 +145,9 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	// 	Data:     data,
 	// 	MailType: Text,
 	// })
-	err := j.Service.SendVerification(context.Background(), authCore.EmailAddress(email), user_id, message)
+	slog.Info("ProcessSendMail vars", "email", email, "message", message)
+	err := j.VerificationNotifier.SendVerification(context.Background(), authCore.EmailAddress(email), message)
+
 	if err != nil {
 		slog.Error("ProcessSendMail Failed", "error", err)
 	}

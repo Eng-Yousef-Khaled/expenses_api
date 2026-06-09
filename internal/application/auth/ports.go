@@ -7,9 +7,9 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, user auth.User) (auth.User, *auth.CreateUserError)
+	CreateUser(ctx context.Context, user CreateUser) (auth.User, error)
 	LoginUser(ctx context.Context, email auth.EmailAddress) (auth.User, error)
-	SendVerification(ctx context.Context, user_id int64, code int32) (auth.UserVerificationCode, error)
+	SaveVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, code string) (auth.UserVerificationCode, error)
 }
 
 type VerificationNotifier interface {

@@ -63,7 +63,7 @@ func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: nameErr.Error()})
 		return
 	}
-	user := authApp.CreateUser{
+	user := authApp.CreateUserRequest{
 		Uuid:     raw.Uuid.Bytes,
 		Name:     name,
 		Email:    email,
@@ -71,9 +71,9 @@ func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 	createdUser, createUserError := s.service.CreateUser(r.Context(), user)
 	if createUserError != nil {
-		if createUserError.Duplicate != "" {
+		if createUserError == authCore.Duplicate {
 			slog.Log(r.Context(), slog.LevelError, "user Duplicate error while creation", "error", createUserError)
-			json.Write(w, http.StatusConflict, ErrorResponse{Error: "This uuid or email already in use please try different one"})
+			json.Write(w, http.StatusConflict, ErrorResponse{Error: authCore.Duplicate.Error()})
 			return
 		}
 		slog.Log(r.Context(), slog.LevelError, "unknown error, may from  server", "error", createUserError)

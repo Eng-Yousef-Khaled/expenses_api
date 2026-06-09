@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+var (
+	Duplicate   = errors.New("This uuid or email already in use please try different one")
+	ServerError = errors.New("Internal Server Error")
+)
+
 type CreateUserError struct {
 	Duplicate       string
 	PasswordHashing string
@@ -17,10 +22,11 @@ var (
 )
 
 var (
-	VerificationCodeError        = errors.New("code must be a 6-digit number")
-	VerificationCodeExpiredError = errors.New("Verification code is expired")
-	VerificationCodeExpireError  = errors.New("Verification code is before current time")
-	VerificationCodeInvalidError = errors.New("Verification code invalid")
+	VerificationCodeError                = errors.New("code must be a 6-digit number")
+	VerificationCodeExpiredError         = errors.New("Verification code is expired")
+	VerificationCodeExpireError          = errors.New("Verification code is before current time")
+	VerificationCodeInvalidError         = errors.New("Verification code invalid")
+	VerificationCodeCantBeGeneratedError = errors.New("Can't generated verification code.")
 )
 
 type NameError string

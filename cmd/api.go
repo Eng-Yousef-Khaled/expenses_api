@@ -54,8 +54,8 @@ func (app *application) mount() http.Handler {
 
 	postgresUserRepo := userrepo.NewRepo(repo.New(app.db))
 	bcryptPasswordHash := passwordhashing.CreateBcryptPasswordHash(bcrypt.DefaultCost)
-	user_service := auth.NewService(postgresUserRepo, redisAdapter, bcryptPasswordHash, mailAdapter)
-	jobHandler := &userrepo.JobHandler{Service: user_service}
+	user_service := auth.NewService(postgresUserRepo, redisAdapter, bcryptPasswordHash)
+	jobHandler := &userrepo.JobHandler{VerificationNotifier: mailAdapter}
 	workerPool := work.NewWorkerPool(userrepo.JobHandler{}, 10, APP_NAME, pool)
 	go workerPool.Start()
 	workerPool.Job("send_verification_mail", jobHandler.ProccessSendMail)

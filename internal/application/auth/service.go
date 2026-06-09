@@ -2,70 +2,70 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
+	"math/big"
+	"time"
 
 	"github.com/eng-yousef-khaled/expenses_api/internal/core/auth"
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, u CreateUser) (auth.User, *auth.CreateUserError)
+	CreateUser(ctx context.Context, u CreateUserRequest) (auth.User, error)
 	LoginUser(ctx context.Context, u LoginUser) (auth.User, error)
-	SendVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, message string) error
 }
 type svc struct {
 	users     UserRepository
 	publisher JobPublisher
 	hasher    PasswordHash
-	mailer    VerificationNotifier
 }
 
 func NewService(users UserRepository,
 	publisher JobPublisher,
-	hasher PasswordHash, mailer VerificationNotifier) UserService {
+	hasher PasswordHash) UserService {
 	return &svc{
 		users:     users,
 		publisher: publisher,
 		hasher:    hasher,
-		mailer:    mailer,
 	}
 }
 
-func (s *svc) CreateUser(ctx context.Context, input CreateUser) (auth.User, *auth.CreateUserError) {
+func (s *svc) CreateUser(ctx context.Context, input CreateUserRequest) (auth.User, error) {
 
 	password, hasherErr := s.hasher.HashingPassword(input.Password)
 	if hasherErr != nil {
 		slog.Log(ctx, slog.LevelError, "hashing error proccess is failed", "error", hasherErr)
-		return auth.User{}, &auth.CreateUserError{PasswordHashing: string(input.Password)}
+		return auth.User{}, auth.ServerError
 	}
-	user := auth.User{
-		Uuid:     input.Uuid,
-		Name:     input.Name,
-		Email:    input.Email,
-		Password: password,
-	}
+	user := NewCreateUser(input, password)
 	u, uError := s.users.CreateUser(ctx, user)
 	if uError != nil {
 		slog.Log(ctx, slog.LevelError, "Has an error while Create User ", "error", uError)
 		return u, uError
 	}
-	err := s.publisher.Publish(ctx, Job{
+	code, codeError := GenerateVerificationCode()
+	if codeError != nil {
+		return auth.User{}, auth.VerificationCodeCantBeGeneratedError
+	}
+	verCode, verErr := s.users.SaveVerification(ctx, u.Email, u.ID, code)
+	if verErr != nil {
+		slog.Info("error in proccess of send verification code in services", "error", verErr)
+		return auth.User{}, verErr
+	}
+	msg := fmt.Sprintf("Welcome dear this is your code %v, will expire at %v", verCode.VerificationCode, time.Time(verCode.ExpiresAt).Format("hh:mm PM"))
+	pubErr := s.publisher.Publish(ctx, Job{
 		Name: "send_verification_mail",
 		Payload: map[string]any{
-			"email":   input.Email,
-			"message": fmt.Sprintf("Welcome dear: %s, your UUID is: %s", input.Name, input.Uuid),
-			"user_id": u.ID,
+			"email":   u.Email,
+			"message": msg,
 		},
 	})
-	if err != nil {
-		slog.Error("Has an error while adding to Queue ", "error", err)
+	if pubErr != nil {
+		slog.Error("Has an error while adding to Queue ", "error", verErr)
+		return auth.User{}, auth.ServerError
 	}
 	return u, nil
-}
-func (s *svc) SendVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, message string) error {
-	slog.Info("Processing email task", "to", mail)
-
-	return s.mailer.SendVerification(ctx, mail, message)
 }
 
 func (s *svc) LoginUser(ctx context.Context, u LoginUser) (auth.User, error) {
@@ -85,4 +85,15 @@ func (s *svc) LoginUser(ctx context.Context, u LoginUser) (auth.User, error) {
 		return auth.User{}, auth.InvalidEmailOrPasswordError
 	}
 	return user, nil
+}
+
+func GenerateVerificationCode() (string, error) {
+	max := big.NewInt(1000000)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	code := fmt.Sprintf("%06d", n.Int64())
+
+	return code, nil
 }
