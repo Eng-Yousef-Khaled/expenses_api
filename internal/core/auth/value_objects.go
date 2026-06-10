@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const EXPIRES_MINUTES = 30
+
 type Name string
 
 func NewName(raw string) (Name, error) {

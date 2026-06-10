@@ -111,7 +111,7 @@ func (p *postgresUserRepository) LoginUser(ctx context.Context, email authCore.E
 }
 
 func (p *postgresUserRepository) SaveVerification(ctx context.Context, mail authCore.EmailAddress, user_id int64, code string) (authCore.UserVerificationCode, error) {
-	parm := VerificationCodeToSqlcParams(authCore.UserVerificationCode{UserID: user_id, VerificationCode: authCore.VerificationCode(code)})
+	parm := VerificationCodeToSqlcParams(authCore.UserVerificationCode{UserID: user_id, VerificationCode: authCore.VerificationCode(code), ExpiresAt: authCore.VerificationCodeExpire(time.Now().Add(authCore.EXPIRES_MINUTES * time.Minute))})
 	user_ver, err := p.q.CreateVerificationCode(ctx, parm)
 	if err != nil {
 		slog.Log(ctx, slog.LevelError, "User Verification Code error", "error", err)
@@ -135,7 +135,11 @@ type JobHandler struct {
 
 func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	email := job.ArgString("email")
-	message := job.ArgString("message")
+	content := job.ArgString("content")
+	subject := job.ArgString("subject")
+	code := job.ArgString("code")
+	name := job.ArgString("name")
+
 	// data := map[string]any{"Name": email, "message": message}
 	// slog.Info("Processing email task after delay", "to", email)
 	// err := j.Mail.Send(Request{
@@ -145,8 +149,8 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	// 	Data:     data,
 	// 	MailType: Text,
 	// })
-	slog.Info("ProcessSendMail vars", "email", email, "message", message)
-	err := j.VerificationNotifier.SendVerification(context.Background(), authCore.EmailAddress(email), message)
+	slog.Info("ProcessSendMail vars", "email", email, "message", content)
+	err := j.VerificationNotifier.SendVerification(context.Background(), authCore.EmailAddress(email), subject, content, code, name)
 
 	if err != nil {
 		slog.Error("ProcessSendMail Failed", "error", err)

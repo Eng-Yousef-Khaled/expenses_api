@@ -53,12 +53,16 @@ func (s *svc) CreateUser(ctx context.Context, input CreateUserRequest) (auth.Use
 		slog.Info("error in proccess of send verification code in services", "error", verErr)
 		return auth.User{}, verErr
 	}
-	msg := fmt.Sprintf("Welcome dear this is your code %v, will expire at %v", verCode.VerificationCode, time.Time(verCode.ExpiresAt).Format("hh:mm PM"))
+	expiresIn := int(time.Until(time.Time(verCode.ExpiresAt)).Minutes())
+	content := fmt.Sprintf("Welcome to Expenses App, this code is valid for %v Min", expiresIn)
 	pubErr := s.publisher.Publish(ctx, Job{
 		Name: "send_verification_mail",
 		Payload: map[string]any{
 			"email":   u.Email,
-			"message": msg,
+			"content": content,
+			"subject": "User Verification Code",
+			"code":    string(verCode.VerificationCode),
+			"name":    string(u.Name),
 		},
 	})
 	if pubErr != nil {

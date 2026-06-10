@@ -13,7 +13,7 @@ type UserRepository interface {
 }
 
 type VerificationNotifier interface {
-	SendVerification(ctx context.Context, mail auth.EmailAddress, message string) error
+	SendVerification(ctx context.Context, mail auth.EmailAddress, subject string, content string, code string, name string) error
 }
 type PasswordHash interface {
 	HashingPassword(password auth.RawPassword) (auth.HashedPassword, error)
