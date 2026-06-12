@@ -12,7 +12,8 @@ import (
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, u CreateUserRequest) (auth.User, error)
+	CreateUser(ctx context.Context, u CreateUser) (auth.User, error)
+	// CheckEnteredVerificationCode(ctx context.Context, code EnterCodeRequest)
 	LoginUser(ctx context.Context, u LoginUser) (auth.User, error)
 }
 type svc struct {
@@ -31,7 +32,7 @@ func NewService(users UserRepository,
 	}
 }
 
-func (s *svc) CreateUser(ctx context.Context, input CreateUserRequest) (auth.User, error) {
+func (s *svc) CreateUser(ctx context.Context, input CreateUser) (auth.User, error) {
 
 	password, hasherErr := s.hasher.HashingPassword(input.Password)
 	if hasherErr != nil {
@@ -84,7 +85,7 @@ func (s *svc) LoginUser(ctx context.Context, u LoginUser) (auth.User, error) {
 		slog.Log(ctx, slog.LevelError, "hashing error proccess is failed", "error", hasherErr)
 		return auth.User{}, auth.LoginPasswordHashingError
 	}
-	if user.Password != password {
+	if user.Password.Value != password.Value {
 		slog.Info("password not matching", "password", password)
 		return auth.User{}, auth.InvalidEmailOrPasswordError
 	}

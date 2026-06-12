@@ -37,23 +37,35 @@ func NewEmailAddress(raw string) (EmailAddress, error) {
 	return EmailAddress(raw), nil
 }
 
+type Password struct {
+	Value  string
+	Hashed bool
+}
 type RawPassword string
 type HashedPassword string
 
-func NewRawPassword(raw string) (RawPassword, error) {
+func NewRawPassword(raw string) (Password, error) {
 	trimmed := strings.TrimSpace(raw)
+
 	if trimmed == "" {
-		return "", PasswordError("password cannot be empty")
+		return Password{}, PasswordError
 	}
-	return RawPassword(trimmed), nil
+
+	return Password{
+		Value:  trimmed,
+		Hashed: false,
+	}, nil
 }
 
-func NewHashedPassword(raw RawPassword) (HashedPassword, error) {
-	trimmed := strings.TrimSpace(string(raw))
+func NewHashedPassword(hash string) (Password, error) {
+	trimmed := strings.TrimSpace(hash)
 	if trimmed == "" {
-		return "", PasswordError("password cannot be empty")
+		return Password{}, PasswordError
 	}
-	return HashedPassword(trimmed), nil
+	return Password{
+		Value:  trimmed,
+		Hashed: true,
+	}, nil
 }
 
 type VerificationCode string

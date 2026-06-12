@@ -43,8 +43,6 @@ func (e *EmailAddressError) Error() string {
 	return fmt.Sprintf("%q is not a valid email address", e.InvalidEmailAddress)
 }
 
-type PasswordError string
-
-func (e PasswordError) Error() string {
-	return string(e)
-}
+var (
+	PasswordError = errors.New("password cannot be empty")
+)

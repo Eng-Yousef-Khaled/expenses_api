@@ -7,11 +7,12 @@ import (
 )
 
 type User struct {
-	ID       int64
-	Uuid     uuid.UUID
-	Name     Name
-	Email    EmailAddress
-	Password HashedPassword
+	ID             int64
+	Uuid           uuid.UUID
+	Name           Name
+	Email          EmailAddress
+	Password       Password
+	IsVerification bool
 }
 
 type UserVerificationCode struct {

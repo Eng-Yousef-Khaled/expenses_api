@@ -35,11 +35,12 @@ func convertGoogleUUIDToPgType(raw uuid.UUID) pgtype.UUID {
 
 func toDomainUser(raw repo.User) authCore.User {
 	return authCore.User{
-		ID:       raw.ID,
-		Uuid:     convertPgTypeUUIDToGoogle(raw.Uuid),
-		Name:     authCore.Name(raw.Name),
-		Email:    authCore.EmailAddress(raw.Email),
-		Password: authCore.HashedPassword(raw.Password),
+		ID:             raw.ID,
+		Uuid:           convertPgTypeUUIDToGoogle(raw.Uuid),
+		Name:           authCore.Name(raw.Name),
+		Email:          authCore.EmailAddress(raw.Email),
+		Password:       authCore.Password{Value: raw.Password, Hashed: true},
+		IsVerification: raw.IsVerification,
 	}
 }
 func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
@@ -47,7 +48,7 @@ func toSqlcParams(raw auth.CreateUser) repo.CreateUserParams {
 		Uuid:     convertGoogleUUIDToPgType(raw.Uuid),
 		Name:     string(raw.Name),
 		Email:    string(raw.Email),
-		Password: string(raw.Password),
+		Password: string(raw.Password.Value),
 	}
 }
 
@@ -140,15 +141,6 @@ func (j JobHandler) ProccessSendMail(job *work.Job) error {
 	code := job.ArgString("code")
 	name := job.ArgString("name")
 
-	// data := map[string]any{"Name": email, "message": message}
-	// slog.Info("Processing email task after delay", "to", email)
-	// err := j.Mail.Send(Request{
-	// 	To:       []string{email},
-	// 	Subject:  "Code Verification",
-	// 	Body:     &message,
-	// 	Data:     data,
-	// 	MailType: Text,
-	// })
 	slog.Info("ProcessSendMail vars", "email", email, "message", content)
 	err := j.VerificationNotifier.SendVerification(context.Background(), authCore.EmailAddress(email), subject, content, code, name)
 

@@ -14,6 +14,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	LoginUser(ctx context.Context, email string) (User, error)
+	SetVerificationStatus(ctx context.Context, arg SetVerificationStatusParams) error
 }
 
 var _ Querier = (*Queries)(nil)

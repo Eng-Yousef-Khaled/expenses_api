@@ -12,9 +12,9 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (uuid, name, email, password)
-VALUES ($1, $2, $3, $4)
-RETURNING id, uuid, name, email, password
+INSERT INTO users (uuid, name, email, password, is_verification)
+VALUES ($1, $2, $3, $4, 0)
+RETURNING id, uuid, name, email, password, is_verification
 `
 
 type CreateUserParams struct {
@@ -38,6 +38,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Email,
 		&i.Password,
+		&i.IsVerification,
 	)
 	return i, err
 }
@@ -69,7 +70,7 @@ func (q *Queries) CreateVerificationCode(ctx context.Context, arg CreateVerifica
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT
-    id, uuid, name, email, password
+    id, uuid, name, email, password, is_verification
 FROM
     users
 WHERE
@@ -85,13 +86,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Password,
+		&i.IsVerification,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
 SELECT 
-    id, uuid, name, email, password 
+    id, uuid, name, email, password, is_verification 
 FROM 
     users
 offset $1 limit $2
@@ -117,6 +119,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.Name,
 			&i.Email,
 			&i.Password,
+			&i.IsVerification,
 		); err != nil {
 			return nil, err
 		}
@@ -130,7 +133,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 
 const loginUser = `-- name: LoginUser :one
 SELECT
-    id, uuid, name, email, password
+    id, uuid, name, email, password, is_verification
 FROM
     users
 WHERE
@@ -146,6 +149,23 @@ func (q *Queries) LoginUser(ctx context.Context, email string) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Password,
+		&i.IsVerification,
 	)
 	return i, err
+}
+
+const setVerificationStatus = `-- name: SetVerificationStatus :exec
+UPDATE users
+SET is_verification = $1
+WHERE id = $2
+`
+
+type SetVerificationStatusParams struct {
+	IsVerification bool  `json:"is_verification"`
+	ID             int64 `json:"id"`
+}
+
+func (q *Queries) SetVerificationStatus(ctx context.Context, arg SetVerificationStatusParams) error {
+	_, err := q.db.Exec(ctx, setVerificationStatus, arg.IsVerification, arg.ID)
+	return err
 }

@@ -63,7 +63,7 @@ func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: nameErr.Error()})
 		return
 	}
-	user := authApp.CreateUserRequest{
+	user := authApp.CreateUser{
 		Uuid:     raw.Uuid.Bytes,
 		Name:     name,
 		Email:    email,
@@ -90,15 +90,15 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	loginUser := authApp.LoginUser{
-		Email:    authCore.EmailAddress(raw.Email),
-		Password: authCore.RawPassword(raw.Password),
-	}
-	u, err := h.service.LoginUser(r.Context(), loginUser)
-	if err != nil {
-		slog.Log(r.Context(), slog.LevelError, "Failed to login", "error", err)
-		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-	json.Write(w, http.StatusOK, u)
+	// loginUser := authApp.LoginUser{
+	// 	Email:    authCore.EmailAddress(raw.Email),
+	// 	Password: authCore.RawPassword(raw.Password),
+	// }
+	// u, err := h.service.LoginUser(r.Context(), loginUser)
+	// if err != nil {
+	// 	slog.Log(r.Context(), slog.LevelError, "Failed to login", "error", err)
+	// 	json.Write(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	// 	return
+	// }
+	// json.Write(w, http.StatusOK, u)
 }

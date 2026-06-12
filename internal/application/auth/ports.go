@@ -16,7 +16,7 @@ type VerificationNotifier interface {
 	SendVerification(ctx context.Context, mail auth.EmailAddress, subject string, content string, code string, name string) error
 }
 type PasswordHash interface {
-	HashingPassword(password auth.RawPassword) (auth.HashedPassword, error)
+	HashingPassword(password auth.Password) (auth.Password, error)
 }
 type Job struct {
 	Name    string
