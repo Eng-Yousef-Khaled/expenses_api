@@ -74,6 +74,7 @@ type PostgresUserRepository interface {
 	CreateUser(ctx context.Context, user auth.CreateUser) (authCore.User, error)
 	LoginUser(ctx context.Context, email authCore.EmailAddress) (authCore.User, error)
 	SaveVerification(ctx context.Context, mail authCore.EmailAddress, user_id int64, code string) (authCore.UserVerificationCode, error)
+	CheckEnteredVerificationCode(ctx context.Context, userId int64, code auth.EnterCodeRequest) (authCore.User, error)
 }
 
 func NewRepo(q *repo.Queries) PostgresUserRepository {
@@ -115,6 +116,9 @@ func (p *postgresUserRepository) SaveVerification(ctx context.Context, mail auth
 	parm := VerificationCodeToSqlcParams(authCore.UserVerificationCode{UserID: user_id, VerificationCode: authCore.VerificationCode(code), ExpiresAt: authCore.VerificationCodeExpire(time.Now().Add(authCore.EXPIRES_MINUTES * time.Minute))})
 	user_ver, err := p.q.CreateVerificationCode(ctx, parm)
 	if err != nil {
+		// TODO: readable error message
+		// Like not correct code or user is not even register!!
+		// in handler also should check user is null of not
 		slog.Log(ctx, slog.LevelError, "User Verification Code error", "error", err)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -128,6 +132,18 @@ func (p *postgresUserRepository) SaveVerification(ctx context.Context, mail auth
 
 	return toDomainUserVerificationCode(user_ver), nil
 
+}
+
+func (p *postgresUserRepository) CheckEnteredVerificationCode(ctx context.Context, userId int64, code auth.EnterCodeRequest) (authCore.User, error) {
+	param := repo.CheckUserVerificationCodeParams{
+		ID:   userId,
+		Code: string(code),
+	}
+	user, err := p.q.CheckUserVerificationCode(ctx, param)
+	if err != nil {
+		return authCore.User{}, err
+	}
+	return toDomainUser(user), nil
 }
 
 type JobHandler struct {

@@ -11,9 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkUserVerificationCode = `-- name: CheckUserVerificationCode :one
+SELECT
+    id, uuid, name, email, password, is_verification
+FROM
+    users u
+WHERE
+    u.id = $1
+    AND u.is_verification = false
+    AND EXISTS (
+        SELECT 1
+        FROM user_verification_code
+        WHERE users_id = u.id
+          AND code = $2
+          AND expires_at > NOW()
+    )
+`
+
+type CheckUserVerificationCodeParams struct {
+	ID   int64  `json:"id"`
+	Code string `json:"code"`
+}
+
+func (q *Queries) CheckUserVerificationCode(ctx context.Context, arg CheckUserVerificationCodeParams) (User, error) {
+	row := q.db.QueryRow(ctx, checkUserVerificationCode, arg.ID, arg.Code)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.IsVerification,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (uuid, name, email, password, is_verification)
-VALUES ($1, $2, $3, $4, 0)
+VALUES ($1, $2, $3, $4, false)
 RETURNING id, uuid, name, email, password, is_verification
 `
 

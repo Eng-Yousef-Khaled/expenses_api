@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CheckUserVerificationCode(ctx context.Context, arg CheckUserVerificationCodeParams) (User, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVerificationCode(ctx context.Context, arg CreateVerificationCodeParams) (UserVerificationCode, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)

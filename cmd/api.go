@@ -63,6 +63,7 @@ func (app *application) mount() http.Handler {
 
 	r.Post("/auth/register", auth_handler.RegisterUser)
 	r.Post("/auth/login", auth_handler.LoginUser)
+	r.Post("/auth/verification", auth_handler.CheckEnteredVerificationCode)
 	return r
 }
 

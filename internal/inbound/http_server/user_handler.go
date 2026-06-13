@@ -16,6 +16,7 @@ type ErrorResponse struct {
 type UserHandler interface {
 	RegisterUser(w http.ResponseWriter, r *http.Request)
 	LoginUser(w http.ResponseWriter, r *http.Request)
+	CheckEnteredVerificationCode(w http.ResponseWriter, r *http.Request)
 }
 type handler struct {
 	service authApp.UserService
@@ -28,6 +29,10 @@ type CreateUserRequest struct {
 	Password string      `json:"password"`
 }
 
+type CheckEnteredVerificationCodeRequest struct {
+	UserId int64  `json:"user_id"`
+	Code   string `json:"code"`
+}
 type LoginUserRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -101,4 +106,28 @@ func (h *handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 	// json.Write(w, http.StatusOK, u)
+}
+
+func (h *handler) CheckEnteredVerificationCode(w http.ResponseWriter, r *http.Request) {
+	var raw CheckEnteredVerificationCodeRequest
+	if err := json.Read(r, &raw); err != nil {
+		slog.Log(r.Context(), slog.LevelError, "convert request data", "error", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	code, err := authCore.NewVerificationCode(raw.Code)
+	if err != nil {
+		slog.Log(r.Context(), slog.LevelError, "incoming data is not correct", "error", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	enterCode := authApp.NewEnterCodeRequest(code)
+
+	u, uErr := h.service.CheckEnteredVerificationCode(r.Context(), raw.UserId, enterCode)
+	if uErr != nil {
+		slog.Log(r.Context(), slog.LevelError, "error while checking code..", "error", err)
+		http.Error(w, uErr.Error(), http.StatusBadRequest)
+		return
+	}
+	json.Write(w, http.StatusOK, u)
 }

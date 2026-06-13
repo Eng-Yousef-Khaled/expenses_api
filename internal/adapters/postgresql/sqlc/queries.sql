@@ -14,7 +14,7 @@ WHERE
 
 -- name: CreateUser :one
 INSERT INTO users (uuid, name, email, password, is_verification)
-VALUES ($1, $2, $3, $4, 0)
+VALUES ($1, $2, $3, $4, false)
 RETURNING id, uuid, name, email, password, is_verification;
 
 -- name: LoginUser :one
@@ -34,3 +34,19 @@ RETURNING id, code, users_id, expires_at, created_at;
 UPDATE users
 SET is_verification = $1
 WHERE id = $2;
+
+-- name: CheckUserVerificationCode :one
+SELECT
+    *
+FROM
+    users u
+WHERE
+    u.id = $1
+    AND u.is_verification = false
+    AND EXISTS (
+        SELECT 1
+        FROM user_verification_code
+        WHERE users_id = u.id
+          AND code = $2
+          AND expires_at > NOW()
+    );

@@ -10,6 +10,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user CreateUser) (auth.User, error)
 	LoginUser(ctx context.Context, email auth.EmailAddress) (auth.User, error)
 	SaveVerification(ctx context.Context, mail auth.EmailAddress, user_id int64, code string) (auth.UserVerificationCode, error)
+	CheckEnteredVerificationCode(ctx context.Context, userId int64, code EnterCodeRequest) (auth.User, error)
 }
 
 type VerificationNotifier interface {
