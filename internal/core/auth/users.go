@@ -17,7 +17,7 @@ type User struct {
 
 type UserVerificationCode struct {
 	ID               int64
-	UserID           int64
+	UserID           UserId
 	VerificationCode VerificationCode
 	ExpiresAt        VerificationCodeExpire
 	CreatedAt        time.Time

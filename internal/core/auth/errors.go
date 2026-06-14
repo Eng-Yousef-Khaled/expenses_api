@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	Duplicate   = errors.New("This uuid or email already in use please try different one")
-	ServerError = errors.New("Internal Server Error")
+	Duplicate          = errors.New("This uuid or email already in use please try different one")
+	ServerError        = errors.New("Internal Server Error")
+	InvalidRequestBody = errors.New("invalid data struct, make sure to check document")
 )
 
 type CreateUserError struct {
@@ -39,10 +40,18 @@ type EmailAddressError struct {
 	InvalidEmailAddress string
 }
 
+var (
+	InvalidEmailAddress = errors.New("email address is not valid")
+)
+
 func (e *EmailAddressError) Error() string {
 	return fmt.Sprintf("%q is not a valid email address", e.InvalidEmailAddress)
 }
 
 var (
 	PasswordError = errors.New("password cannot be empty")
+)
+
+var (
+	InvalidUserId = errors.New("user_id can't be empty")
 )

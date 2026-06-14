@@ -13,7 +13,7 @@ import (
 
 type UserService interface {
 	CreateUser(ctx context.Context, u CreateUser) (auth.User, error)
-	CheckEnteredVerificationCode(ctx context.Context, userId int64, code EnterCodeRequest) (auth.User, error)
+	CheckEnteredVerificationCode(ctx context.Context, userId auth.UserId, code EnterCodeRequest) (auth.User, error)
 	LoginUser(ctx context.Context, u LoginUser) (auth.User, error)
 }
 type svc struct {
@@ -92,7 +92,7 @@ func (s *svc) LoginUser(ctx context.Context, u LoginUser) (auth.User, error) {
 	return user, nil
 }
 
-func (s *svc) CheckEnteredVerificationCode(ctx context.Context, userId int64, code EnterCodeRequest) (auth.User, error) {
+func (s *svc) CheckEnteredVerificationCode(ctx context.Context, userId auth.UserId, code EnterCodeRequest) (auth.User, error) {
 	u, err := s.users.CheckEnteredVerificationCode(ctx, userId, code)
 	if err != nil {
 		return auth.User{}, err

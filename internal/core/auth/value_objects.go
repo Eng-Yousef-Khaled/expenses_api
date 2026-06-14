@@ -34,6 +34,9 @@ func NewEmailAddress(raw string) (EmailAddress, error) {
 	if err := validateEmailAddress(trimmed); err != nil {
 		return "", err
 	}
+	if !strings.Contains(raw, "@") {
+		return "", InvalidEmailAddress
+	}
 	return EmailAddress(raw), nil
 }
 
@@ -85,4 +88,13 @@ func NewVerificationCodeExpired(raw time.Time) (VerificationCodeExpire, error) {
 		return VerificationCodeExpire(time.Now()), VerificationCodeExpireError
 	}
 	return VerificationCodeExpire(raw), nil
+}
+
+type UserId int64
+
+func NewUserId(raw int64) (UserId, error) {
+	if raw == 0 {
+		return 0, InvalidUserId
+	}
+	return UserId(raw), nil
 }

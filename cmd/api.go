@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	_ "github.com/eng-yousef-khaled/expenses_api/docs"
 	repo "github.com/eng-yousef-khaled/expenses_api/internal/adapters/postgresql/sqlc"
 	"github.com/eng-yousef-khaled/expenses_api/internal/application/auth"
 	httpserver "github.com/eng-yousef-khaled/expenses_api/internal/inbound/http_server"
@@ -14,13 +15,13 @@ import (
 	passwordhashing "github.com/eng-yousef-khaled/expenses_api/internal/outbound/password_hashing"
 	userrepo "github.com/eng-yousef-khaled/expenses_api/internal/outbound/postgres"
 	"github.com/eng-yousef-khaled/expenses_api/internal/outbound/queue"
-	"github.com/gocraft/work"
-	"github.com/gomodule/redigo/redis"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gocraft/work"
+	"github.com/gomodule/redigo/redis"
 	"github.com/jackc/pgx/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const APP_NAME = "expanses_api"
@@ -64,6 +65,7 @@ func (app *application) mount() http.Handler {
 	r.Post("/auth/register", auth_handler.RegisterUser)
 	r.Post("/auth/login", auth_handler.LoginUser)
 	r.Post("/auth/verification", auth_handler.CheckEnteredVerificationCode)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 	return r
 }
 

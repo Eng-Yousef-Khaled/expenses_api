@@ -22,7 +22,6 @@ type handler struct {
 	service authApp.UserService
 }
 type CreateUserRequest struct {
-	ID       int64       `json:"id"`
 	Uuid     pgtype.UUID `json:"uuid"`
 	Name     string      `json:"name"`
 	Email    string      `json:"email"`
@@ -43,29 +42,38 @@ func CreateHandler(ser authApp.UserService) UserHandler {
 		service: ser,
 	}
 }
+
+// RegisterUser godoc
+// @Summary      Register a new user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request body      CreateUserRequest  true  "Payload"
+// @Success      201     {object}  authCore.User
+// @Router       /auth/register [post]
 func (s *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var raw CreateUserRequest
 	if err := json.Read(r, &raw); err != nil {
 		slog.Log(r.Context(), slog.LevelError, "convert request ", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: authCore.InvalidRequestBody.Error()})
 		return
 	}
 	email, mailErr := authCore.NewEmailAddress(raw.Email)
 	if mailErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "email is not valid", "error", mailErr)
-		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: mailErr.Error()})
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: mailErr.Error()})
 		return
 	}
 	pass, passErr := authCore.NewRawPassword(raw.Password)
 	if passErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "password is not valid", "error", passErr)
-		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: passErr.Error()})
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: passErr.Error()})
 		return
 	}
 	name, nameErr := authCore.NewName(raw.Name)
 	if nameErr != nil {
 		slog.Log(r.Context(), slog.LevelError, "name is not valid", "error", nameErr)
-		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: nameErr.Error()})
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: nameErr.Error()})
 		return
 	}
 	user := authApp.CreateUser{
@@ -112,21 +120,27 @@ func (h *handler) CheckEnteredVerificationCode(w http.ResponseWriter, r *http.Re
 	var raw CheckEnteredVerificationCodeRequest
 	if err := json.Read(r, &raw); err != nil {
 		slog.Log(r.Context(), slog.LevelError, "convert request data", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		json.Write(w, http.StatusBadRequest, ErrorResponse{Error: authCore.InvalidRequestBody.Error()})
 		return
 	}
 	code, err := authCore.NewVerificationCode(raw.Code)
 	if err != nil {
 		slog.Log(r.Context(), slog.LevelError, "incoming data is not correct", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: err.Error()})
 		return
 	}
+	userId, uIdErr := authCore.NewUserId(raw.UserId)
+	if uIdErr != nil {
+		slog.Log(r.Context(), slog.LevelError, "incoming data is not correct", "error", uIdErr)
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: uIdErr.Error()})
+		return
+	}
+	slog.Log(r.Context(), slog.LevelError, "User Verification Code received", "payload", raw)
 	enterCode := authApp.NewEnterCodeRequest(code)
-
-	u, uErr := h.service.CheckEnteredVerificationCode(r.Context(), raw.UserId, enterCode)
+	u, uErr := h.service.CheckEnteredVerificationCode(r.Context(), userId, enterCode)
 	if uErr != nil {
-		slog.Log(r.Context(), slog.LevelError, "error while checking code..", "error", err)
-		http.Error(w, uErr.Error(), http.StatusBadRequest)
+		slog.Log(r.Context(), slog.LevelError, "error while checking code", "error", uErr)
+		json.Write(w, http.StatusUnprocessableEntity, ErrorResponse{Error: uErr.Error()})
 		return
 	}
 	json.Write(w, http.StatusOK, u)

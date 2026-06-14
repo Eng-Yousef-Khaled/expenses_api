@@ -1,0 +1,62 @@
+definitions:
+  github_com_eng-yousef-khaled_expenses_api_internal_core_auth.Password:
+    properties:
+      hashed:
+        type: boolean
+      value:
+        type: string
+    type: object
+  github_com_eng-yousef-khaled_expenses_api_internal_core_auth.User:
+    properties:
+      email:
+        type: string
+      id:
+        format: int64
+        type: integer
+      isVerification:
+        type: boolean
+      name:
+        type: string
+      password:
+        $ref: '#/definitions/github_com_eng-yousef-khaled_expenses_api_internal_core_auth.Password'
+      uuid:
+        type: string
+    type: object
+  internal_inbound_http_server.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      password:
+        type: string
+      uuid:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_inbound_http_server.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_eng-yousef-khaled_expenses_api_internal_core_auth.User'
+      summary: Register a new user
+      tags:
+      - users
+swagger: "2.0"
