@@ -32,6 +32,15 @@ type User struct {
 	IsVerification bool        `json:"is_verification"`
 }
 
+type UserSession struct {
+	ID           pgtype.UUID        `json:"id"`
+	UserID       int32              `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+	IsActive     pgtype.Bool        `json:"is_active"`
+}
+
 type UserVerificationCode struct {
 	ID        int64              `json:"id"`
 	Code      string             `json:"code"`

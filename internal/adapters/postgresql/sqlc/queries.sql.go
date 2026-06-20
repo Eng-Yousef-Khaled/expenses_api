@@ -79,6 +79,38 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const createUserSession = `-- name: CreateUserSession :one
+INSERT INTO user_session (id, user_id, refresh_token, expires_at)
+VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, refresh_token, created_at, expires_at, is_active
+`
+
+type CreateUserSessionParams struct {
+	ID           pgtype.UUID        `json:"id"`
+	UserID       int32              `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionParams) (UserSession, error) {
+	row := q.db.QueryRow(ctx, createUserSession,
+		arg.ID,
+		arg.UserID,
+		arg.RefreshToken,
+		arg.ExpiresAt,
+	)
+	var i UserSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.IsActive,
+	)
+	return i, err
+}
+
 const createVerificationCode = `-- name: CreateVerificationCode :one
 INSERT INTO user_verification_code (code, users_id, expires_at)
 VALUES ($1, $2, $3)
@@ -123,6 +155,30 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Email,
 		&i.Password,
 		&i.IsVerification,
+	)
+	return i, err
+}
+
+const getUserSessionByRefreshToken = `-- name: GetUserSessionByRefreshToken :one
+SELECT
+    id, user_id, refresh_token, created_at, expires_at, is_active
+FROM
+    user_session
+WHERE
+    refresh_token = $1
+    AND is_active = true
+`
+
+func (q *Queries) GetUserSessionByRefreshToken(ctx context.Context, refreshToken string) (UserSession, error) {
+	row := q.db.QueryRow(ctx, getUserSessionByRefreshToken, refreshToken)
+	var i UserSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.IsActive,
 	)
 	return i, err
 }
