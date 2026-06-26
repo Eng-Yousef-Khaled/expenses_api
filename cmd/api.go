@@ -88,10 +88,11 @@ type application struct {
 }
 
 type config struct {
-	addr    string
-	db      dbConfig
-	mail    mailConfig
-	caching cachingConfig
+	addr                string
+	db                  dbConfig
+	mail                mailConfig
+	caching             cachingConfig
+	secretEncryptionKey string
 }
 
 type dbConfig struct {

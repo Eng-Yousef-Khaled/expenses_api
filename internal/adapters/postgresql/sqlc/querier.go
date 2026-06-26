@@ -14,7 +14,7 @@ type Querier interface {
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) (UserSession, error)
 	CreateVerificationCode(ctx context.Context, arg CreateVerificationCodeParams) (UserVerificationCode, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
-	GetUserSessionByRefreshToken(ctx context.Context, refreshToken string) (UserSession, error)
+	GetUserSessionByUserId(ctx context.Context, userID int32) (UserSession, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	LoginUser(ctx context.Context, email string) (User, error)
 	SetVerificationStatus(ctx context.Context, arg SetVerificationStatusParams) error

@@ -26,3 +26,8 @@ type Job struct {
 type JobPublisher interface {
 	Publish(ctx context.Context, job Job) error
 }
+
+type Authentication interface {
+	GenerateIdentifier(ctx context.Context, user auth.User) (auth.Identifier, error)
+	VerifyUserIdentifier(ctx context.Context, token auth.Identifier) (auth.UserId, error)
+}

@@ -98,3 +98,45 @@ func NewUserId(raw int64) (UserId, error) {
 	}
 	return UserId(raw), nil
 }
+
+type Identifier string
+
+func NewIdentifier(raw string, t int8) (Identifier, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", InvalidIdentifier
+	}
+	if t == 0 {
+		token, err := NewAccessToken(trimmed)
+		if err != nil {
+			return "", err
+		}
+		return Identifier(token), nil
+	}
+
+	token, err := NewRefreshToken(trimmed)
+	if err != nil {
+		return "", err
+	}
+	return Identifier(token), nil
+}
+
+type RefreshToken string
+
+func NewRefreshToken(raw string) (RefreshToken, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", InvalidRefreshToken
+	}
+	return RefreshToken(raw), nil
+}
+
+type AccessToken string
+
+func NewAccessToken(raw string) (AccessToken, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", InvalidAccessToken
+	}
+	return AccessToken(raw), nil
+}

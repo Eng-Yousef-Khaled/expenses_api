@@ -49,9 +49,13 @@ func (e *EmailAddressError) Error() string {
 }
 
 var (
-	PasswordError = errors.New("password cannot be empty")
+	PasswordError                   = errors.New("password cannot be empty")
+	AuthenticationIdentifierNotPass = errors.New("should pass authentication identifier")
 )
 
 var (
-	InvalidUserId = errors.New("user_id can't be empty")
+	InvalidUserId       = errors.New("user_id can't be empty")
+	InvalidRefreshToken = errors.New("refresh_token can't be empty")
+	InvalidAccessToken  = errors.New("access_token can't be empty")
+	InvalidIdentifier   = errors.New("identifier can't be empty")
 )

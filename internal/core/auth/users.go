@@ -22,3 +22,13 @@ type UserVerificationCode struct {
 	ExpiresAt        VerificationCodeExpire
 	CreatedAt        time.Time
 }
+
+type UserSession struct {
+	Id           int64
+	UserId       UserId
+	RefreshToken RefreshToken
+	AccessToken  AccessToken
+	CreatedAt    time.Time
+	ExpiredAt    time.Time
+	IsActive     bool
+}

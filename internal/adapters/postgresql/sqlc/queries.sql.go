@@ -159,18 +159,18 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
-const getUserSessionByRefreshToken = `-- name: GetUserSessionByRefreshToken :one
+const getUserSessionByUserId = `-- name: GetUserSessionByUserId :one
 SELECT
     id, user_id, refresh_token, created_at, expires_at, is_active
 FROM
     user_session
 WHERE
-    refresh_token = $1
+    user_id = $1
     AND is_active = true
 `
 
-func (q *Queries) GetUserSessionByRefreshToken(ctx context.Context, refreshToken string) (UserSession, error) {
-	row := q.db.QueryRow(ctx, getUserSessionByRefreshToken, refreshToken)
+func (q *Queries) GetUserSessionByUserId(ctx context.Context, userID int32) (UserSession, error) {
+	row := q.db.QueryRow(ctx, getUserSessionByUserId, userID)
 	var i UserSession
 	err := row.Scan(
 		&i.ID,

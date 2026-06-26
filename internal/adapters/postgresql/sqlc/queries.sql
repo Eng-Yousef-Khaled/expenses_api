@@ -56,11 +56,11 @@ INSERT INTO user_session (id, user_id, refresh_token, expires_at)
 VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, refresh_token, created_at, expires_at, is_active;
 
--- name: GetUserSessionByRefreshToken :one
+-- name: GetUserSessionByUserId :one
 SELECT
     id, user_id, refresh_token, created_at, expires_at, is_active
 FROM
     user_session
 WHERE
-    refresh_token = $1
+    user_id = $1
     AND is_active = true;

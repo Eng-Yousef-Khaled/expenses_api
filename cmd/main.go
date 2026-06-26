@@ -21,6 +21,7 @@ func main() {
 		os.Exit(0)
 	}
 	mail_port, err := strconv.Atoi(env.GetString("MAIL_PORT", "432"))
+
 	if err != nil {
 		log.Printf("Invalid Mail Port")
 		os.Exit(0)
@@ -42,6 +43,7 @@ func main() {
 			Wait:      true,
 			Dial:      func() (redis.Conn, error) { return redis.Dial("tcp", "127.0.0.1:3605") },
 		},
+		secretEncryptionKey: env.GetString("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),
 	}
 
 	// logger
